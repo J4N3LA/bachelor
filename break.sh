@@ -6,7 +6,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 CUSTOM_PORT=8088
-DEMO_DIR=~/selinux_demo
+DEMO_DIR=/tmp/selinux_demo
 DEMO_FILE=$DEMO_DIR/index.html
 TARGET_FILE=/var/www/html/index.html
 VHOST_CONF=/etc/httpd/conf.d/demo.conf
@@ -19,12 +19,15 @@ rm -f "$TARGET_FILE"
 rm -f "$VHOST_CONF"
 
 # sademonstracio faili sheqmna 
-echo
 echo "== Creating demo file with wrong DAC and SELinux context =="
-echo "<h1>Hello CU</h1>" > "$DEMO_FILE"
+echo
+echo "Hello CU" > "$DEMO_FILE"
 chown "$USER_NAME":"$USER_NAME" "$DEMO_FILE"
-chmod 600 "$DEMO_FILE"
+#chmod 600 "$DEMO_FILE"
 mv "$DEMO_FILE" "$TARGET_FILE"
+
+echo "❌== File's DAC and SELinux context:"
+ls -lZ "$TARGET_FILE"
 
 # httpd servisis konfiguracia konkretul portze requestebis misagebad
 
@@ -41,31 +44,24 @@ Listen $CUSTOM_PORT
 EOF
 
 #dakonfigurirebul portze selinux uflebebis moxsna
+echo "❌== Removing $CUSTOM_PORT from SELinux httpd port mapping =="
+
 if semanage port -l | grep -q "^http_port_t.*$CUSTOM_PORT"; then
   semanage port -d -t http_port_t -p tcp $CUSTOM_PORT
 else
   echo "SELinux has no mapping for $CUSTOM_PORT"
 fi
+echo "--> $(semanage port -l | grep  "^http_port_t.*")"
 
-echo
-echo "== Current SELinux httpd port mappings =="
-semanage port -l | grep ^http_port_t
 
-echo
-echo "== File's DAC and SELinux context:"
-ls -lZ "$TARGET_FILE"
-echo ""
-
-echo
-echo "== Restarting Apache =="
+echo "❌== Restarting Apache =="
 systemctl restart httpd
 
-echo "==  Apache status summary:"
-systemctl is-active httpd && echo "[✓] httpd is active" || echo "[X] httpd failed to start"
+echo "--> httpd status : "
+systemctl is-active httpd 
 echo ""
 
-echo "== Testing curl to http://localhost:$CUSTOM_PORT"
-echo
+echo "❌== testing connection to http://localhost:$CUSTOM_PORT =="
 
-curl http://localhost:$CUSTOM_PORT
+curl localhost:$CUSTOM_PORT
 

@@ -34,7 +34,6 @@ echo
 ## Fixsing file index.html DAC permissions
 echo "✅== Correcting file ownership, permissions, and context =="
 chown apache:apache "$TARGET_FILE"
-chmod 644 "$TARGET_FILE"
 echo "--> File after fix:"
 ls -lZ "$TARGET_FILE"
 
